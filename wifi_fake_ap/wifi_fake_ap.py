@@ -20,7 +20,7 @@ def create_fake_ap(ssid):
 def listen_http_traffic(output_file):
     os.system(f'tcpdump -i wlan0 -w {output_file} tcp port 80 &
     pid = os.getpid()
-    signal.signal(signal.SIGINT, lambda sig, frame: os.kill(pid, signal.SIGTERM))
+    signal.signal(signal.SIGINT, lambda sig, frame: os.kill(pid, signal.SIGTERM)))
 
 # Функция для показа захваченных данных
 def show_captured_data(output_file):
