@@ -206,14 +206,27 @@ def rfid_phone():
 def osint_search():
     print("🔍 1.Телефон 2.Email 3.Ник 4.IP 5.Утечки 6.Соцсети")
     c = input('>>> ').strip()
-    if c == '1': os.system(f'curl -s "https://htmlweb.ru/geo/api.php?json&telcod={input(\"📱 +79: \").strip()}" 2>/dev/null')
-    elif c == '2': os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{input(\"📧: \").strip()}" 2>/dev/null')
+    if c == '1':
+        phone = input("📱 +79: ").strip()
+        os.system(f'curl -s "https://htmlweb.ru/geo/api.php?json&telcod={phone}" 2>/dev/null')
+    elif c == '2':
+        email = input("📧: ").strip()
+        os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{email}" 2>/dev/null')
     elif c == '3':
         u = input("👤: ").strip()
-        for s in ['github.com','vk.com','t.me']: print(f"  {s}/{u}: ", end=''); os.system(f'curl -s -o /dev/null -w "%{{http_code}}" https://{s}/{u} 2>/dev/null'); print()
-    elif c == '4': os.system(f'curl -s "http://ip-api.com/json/{input(\"IP: \").strip()}" 2>/dev/null')
-    elif c == '5': os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{input(\"📧: \").strip()}" 2>/dev/null')
-    elif c == '6': print(f"  VK: https://vk.com/search?q={input('👤 Имя: ').strip()}")
+        for s in ['github.com','vk.com','t.me']:
+            print(f"  {s}/{u}: ", end='')
+            os.system(f'curl -s -o /dev/null -w "%{{http_code}}" https://{s}/{u} 2>/dev/null')
+            print()
+    elif c == '4':
+        ip = input("IP: ").strip()
+        os.system(f'curl -s "http://ip-api.com/json/{ip}" 2>/dev/null')
+    elif c == '5':
+        email = input("📧: ").strip()
+        os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{email}" 2>/dev/null')
+    elif c == '6':
+        name = input("👤 Имя: ").strip()
+        print(f"  VK: https://vk.com/search?q={name}")
 def osint_photo(): print("📷 https://images.google.com\n  https://tineye.com\n  https://yandex.ru/images/search")
 
 # АВТО-АТАКИ
