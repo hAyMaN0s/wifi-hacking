@@ -188,10 +188,16 @@ def vpn_check(): print("🌍 IP:"); os.system('curl -s ifconfig.me 2>/dev/null')
 def rfid_clone():
     print("📡 1.Считать 2.Эмулировать 3.Записать 4.NFC телефон")
     c = input('>>> ').strip()
-    if c == '1': os.system('pm3 -c "lf search"')
-    elif c == '2': os.system(f'pm3 -c "lf em 410x emu --id {input(\"ID: \").strip()}"')
-    elif c == '3': os.system(f'pm3 -c "lf em 410x clone --id {input(\"ID: \").strip()}"')
-    elif c == '4': os.system('nfc-list')
+    if c == '1':
+        os.system('pm3 -c "lf search"')
+    elif c == '2':
+        card_id = input("ID: ").strip()
+        os.system(f'pm3 -c "lf em 410x emu --id {card_id}"')
+    elif c == '3':
+        card_id = input("ID: ").strip()
+        os.system(f'pm3 -c "lf em 410x clone --id {card_id}"')
+    elif c == '4':
+        os.system('nfc-list')
 def rfid_phone():
     print("📱 Поднеси карту..."); r = os.popen('nfc-list 2>/dev/null').read()
     if r: print(f"📋 {r}"); open(f'{DATA}/rfid.txt','a').write(f"{datetime.now()}: {r}\n")
